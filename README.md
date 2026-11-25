@@ -83,3 +83,5 @@ The Tailwind theme extension is exported from `@rentr/ui/tokens`. The molecule b
 ## GitHub Actions
 
 `.github/workflows/ci.yml` runs lint, typecheck, build, and the Auth unit tests as separate parallel jobs on pull requests, pushes to `main`, and manual dispatch. CI uses Node.js 22, the pnpm version pinned in `package.json`, and frozen lockfile installs. CI does not deploy; choose a hosting target and configure its credentials before adding deployment automation.
+#   r e n t r - b u i l d i n g -  
+ 
