@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --canvas: #f9f9f8;
+  --surface: #ffffff;
+  --ink: #1c2434;
+  --muted: #536174;
+  --brand: #315fce;
+  --line: #e2e8f0;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans Arabic', 'IBM Plex Sans', Tahoma, sans-serif;
+  font-feature-settings: 'kern';
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #dbe8ff;
+  color: #1c2434;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
+.page-shell {
+  width: min(100% - 2rem, 1280px);
+  margin-inline: auto;
+}
+
+.surface-card {
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgb(28 36 52 / 4%), 0 1px 2px rgb(28 36 52 / 2%);
+}
+
+.field-control {
+  min-height: 44px;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.625rem 0.875rem;
+  color: var(--ink);
+  text-align: right;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.field-control:focus {
+  border-color: var(--brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(49 95 206 / 14%);
+}
+
+@media (min-width: 768px) {
+  .page-shell {
+    width: min(100% - 3rem, 1280px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-shell {
+    width: min(100% - 5rem, 1280px);
+  }
+}

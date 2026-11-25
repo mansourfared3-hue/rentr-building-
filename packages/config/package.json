@@ -1,0 +1,16 @@
+{
+  "name": "@rentr/config",
+  "version": "0.1.0",
+  "private": true,
+  "exports": {
+    "./eslint/base": "./eslint/base.cjs",
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/next.json": "./tsconfig/next.json",
+    "./tsconfig/nest.json": "./tsconfig/nest.json",
+    "./tsconfig/library.json": "./tsconfig/library.json",
+    "./tailwind-preset": "./tailwind/tailwind-preset.cjs"
+  },
+  "scripts": {
+    "lint": "eslint eslint --ext .cjs"
+  }
+}

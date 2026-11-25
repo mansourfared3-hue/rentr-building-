@@ -1,0 +1,11 @@
+{
+  "routes": [
+    { "path": "/", "title": "Home" },
+    { "path": "/properties", "title": "Properties" },
+    { "path": "/properties/new", "title": "New property" },
+    { "path": "/properties/:id", "title": "Property detail" },
+    { "path": "/requests", "title": "Owner requests" },
+    { "path": "/requests/:id/chat", "title": "Request chat" },
+    { "path": "/profile", "title": "Tenant profile" }
+  ]
+}

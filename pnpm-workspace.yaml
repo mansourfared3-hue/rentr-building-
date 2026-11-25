@@ -1,0 +1,15 @@
+packages:
+  - 'frontend'
+  - 'backend'
+  - 'packages/*'
+
+overrides:
+  '@typescript-eslint/eslint-plugin': '^8.71.0'
+  '@typescript-eslint/parser': '^8.71.0'
+
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  next: true
+  prisma: true
+  unrs-resolver: true

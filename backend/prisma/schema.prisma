@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TENANT
+  OWNER
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  STUDIO
+  ROOM
+  OTHER
+}
+
+enum PropertyFurnishing {
+  FURNISHED
+  PARTIALLY_FURNISHED
+  UNFURNISHED
+  UNKNOWN
+}
+
+enum RentPeriod {
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum PropertyStatus {
+  DRAFT
+  PUBLISHED
+  ON_HOLD
+  WITHDRAWN
+}
+
+enum RentalRequestStatus {
+  PENDING
+  ON_HOLD
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum RequestRejectionReason {
+  PROFILE
+  UNAVAILABLE
+}
+
+enum WalletEntryReason {
+  GRANT
+  REQUEST_RESERVE
+  REQUEST_REFUND
+  REQUEST_CONSUME
+  ADMIN_ADJUSTMENT
+}
+
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  email           String           @unique @db.VarChar(254)
+  phone           String?          @unique @db.VarChar(32)
+  roles           UserRole[]       @default([TENANT])
+  createdAt       DateTime         @default(now()) @db.Timestamptz(3)
+  otpChallenges   OtpChallenge[]
+  refreshSessions RefreshSession[]
+  tenantProfile   TenantProfile?
+  properties      Property[]
+  wallet          ConnectWallet?
+  tenantRequests  RentalRequest[]  @relation("TenantRequests")
+  ownerRequests   RentalRequest[]  @relation("OwnerRequests")
+  messages        RentalMessage[]
+  notifications   Notification[]
+
+  @@map("users")
+}
+
+model TenantProfile {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @db.Uuid
+  name              String   @db.VarChar(120)
+  occupation        String   @db.VarChar(120)
+  isStudent         Boolean  @default(false)
+  livingArrangement String   @db.VarChar(24)
+  familySize        Int      @default(1)
+  moveInDate        DateTime @db.Date
+  introduction      String   @db.VarChar(1000)
+  avatarUrl         String?  @db.VarChar(2048)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_profiles")
+}
+
+model Property {
+  id                  String             @id @default(uuid()) @db.Uuid
+  ownerId             String             @db.Uuid
+  title               String             @db.VarChar(160)
+  type                PropertyType
+  community           String             @db.VarChar(120)
+  bedrooms            Int
+  bathrooms           Int
+  area                Int
+  areaUnit            String             @default("m²") @db.VarChar(16)
+  furnishing          PropertyFurnishing
+  rent                Int
+  currency            String             @default("EGP") @db.VarChar(3)
+  rentPeriod          RentPeriod         @default(MONTH)
+  availabilityDate    DateTime           @db.Date
+  description         String             @db.VarChar(3000)
+  images              Json
+  approximateLocation String             @db.VarChar(180)
+  address             String             @db.VarChar(500)
+  additionalInfo      String?            @db.VarChar(1000)
+  status              PropertyStatus     @default(DRAFT)
+  createdAt           DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime           @updatedAt @db.Timestamptz(3)
+  owner               User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  location            PropertyLocation?
+  requests            RentalRequest[]
+
+  @@index([status, updatedAt])
+  @@index([ownerId, status])
+  @@map("properties")
+}
+
+model PropertyLocation {
+  propertyId String   @id @db.Uuid
+  latitude   Decimal? @db.Decimal(10, 7)
+  longitude  Decimal? @db.Decimal(10, 7)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_locations")
+}
+
+model ConnectWallet {
+  id        String              @id @default(uuid()) @db.Uuid
+  userId    String              @unique @db.Uuid
+  available Int                 @default(0)
+  reserved  Int                 @default(0)
+  updatedAt DateTime            @updatedAt @db.Timestamptz(3)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   WalletLedgerEntry[]
+
+  @@map("connect_wallets")
+}
+
+model WalletLedgerEntry {
+  id              String            @id @default(uuid()) @db.Uuid
+  walletId        String            @db.Uuid
+  requestId       String?           @db.Uuid
+  availableChange Int
+  reservedChange  Int
+  reason          WalletEntryReason
+  createdAt       DateTime          @default(now()) @db.Timestamptz(3)
+  wallet          ConnectWallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  request         RentalRequest?    @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  @@index([walletId, createdAt])
+  @@index([requestId])
+  @@map("wallet_ledger_entries")
+}
+
+model RentalRequest {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  tenantId              String                  @db.Uuid
+  ownerId               String                  @db.Uuid
+  propertyId            String                  @db.Uuid
+  profileSnapshot       Json
+  message               String                  @default("") @db.VarChar(2000)
+  status                RentalRequestStatus     @default(PENDING)
+  rejectionReason       RequestRejectionReason?
+  connectsReserved      Int
+  createdAt             DateTime                @default(now()) @db.Timestamptz(3)
+  expiresAt             DateTime                @db.Timestamptz(3)
+  expiresSoonNotifiedAt DateTime?               @db.Timestamptz(3)
+  decidedAt             DateTime?               @db.Timestamptz(3)
+  tenant                User                    @relation("TenantRequests", fields: [tenantId], references: [id], onDelete: Cascade)
+  owner                 User                    @relation("OwnerRequests", fields: [ownerId], references: [id], onDelete: Cascade)
+  property              Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  messages              RentalMessage[]
+  walletEntries         WalletLedgerEntry[]
+  adminWhatsAppOutbox   AdminWhatsAppOutbox[]
+
+  @@index([tenantId, createdAt])
+  @@index([ownerId, status, expiresAt])
+  @@index([propertyId, status])
+  @@map("rental_requests")
+}
+
+model RentalMessage {
+  id        String        @id @default(uuid()) @db.Uuid
+  requestId String        @db.Uuid
+  senderId  String        @db.Uuid
+  body      String        @db.VarChar(2000)
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  request   RentalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  sender    User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, createdAt])
+  @@map("rental_messages")
+}
+
+model AdminWhatsAppOutbox {
+  id            String        @id @default(uuid()) @db.Uuid
+  requestId     String        @db.Uuid
+  propertyTitle String        @db.VarChar(160)
+  ownerEmail    String        @db.VarChar(254)
+  attempts      Int           @default(0)
+  nextAttemptAt DateTime      @default(now()) @db.Timestamptz(3)
+  lockedAt      DateTime?     @db.Timestamptz(3)
+  sentAt        DateTime?     @db.Timestamptz(3)
+  lastError     String?       @db.VarChar(1000)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+  request       RentalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt, nextAttemptAt])
+  @@map("admin_whatsapp_outbox")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  title     String    @db.VarChar(160)
+  body      String    @db.VarChar(500)
+  targetUrl String    @db.VarChar(500)
+  readAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
+
+model OtpChallenge {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @db.VarChar(254)
+  codeHash     String    @db.Char(64)
+  expiresAt    DateTime  @db.Timestamptz(3)
+  consumedAt   DateTime? @db.Timestamptz(3)
+  attemptCount Int       @default(0)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  userId       String?   @db.Uuid
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+  @@map("otp_challenges")
+}
+
+model RefreshSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.Char(64)
+  expiresAt DateTime  @db.Timestamptz(3)
+  revokedAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("refresh_sessions")
+}
